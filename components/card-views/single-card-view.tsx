@@ -244,7 +244,7 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
         {/* Card */}
         <Card
           className={cn(
-            "h-[480px] md:h-[380px] flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white relative",
+            "h-[440px] md:h-[380px] flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white relative",
             flipped && "ring-1 ring-primary/20",
           )}
           onClick={handleCardClick}
