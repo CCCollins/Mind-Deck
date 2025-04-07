@@ -16,9 +16,6 @@ export default function Home() {
       <h1 className="text-5xl font-extrabold text-center text-gray-900">
         Mind Deck
       </h1>
-      <p className="text-lg text-center text-gray-700 mt-4 max-w-2xl">
-        Создавайте и изучайте флеш-карточки с различными режимами обучения. Улучшайте свою память легко и быстро!
-      </p>
 
       {/* Карточки */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mt-10">
