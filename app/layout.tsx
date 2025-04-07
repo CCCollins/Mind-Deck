@@ -6,9 +6,8 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin", "cyrillic"] })
 
 export const metadata: Metadata = {
-  title: "Приложение Флеш-карточки",
-  description: "Приложение для создания и изучения флеш-карточек с использованием Next.js и Supabase",
-    generator: 'v0.dev'
+  title: "Mind Deck",
+  description: "Приложение для создания и изучения флеш-карточек",
 }
 
 export default function RootLayout({
@@ -18,13 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className={inter.className}>
-        <main>{children}</main>
+      <body className={`${inter.className} bg-gradient-to-b from-blue-50 to-blue-100 min-h-screen`}>
+        <main className="min-h-screen flex flex-col">{children}</main>
       </body>
     </html>
   )
 }
-
-
-
-import './globals.css'

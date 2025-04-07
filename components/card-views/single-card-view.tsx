@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Eye, EyeOff, ChevronLeft, ChevronRight, RotateCw } from "lucide-react"
+import { Eye, EyeOff, ChevronLeft, ChevronRight, RotateCw, SkipBack } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
@@ -12,10 +12,12 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface SingleCardViewProps {
   cards: { question: string; answer: string }[]
+  initialIndex?: number
+  onIndexChange?: (index: number) => void
 }
 
-export default function SingleCardView({ cards }: SingleCardViewProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+export default function SingleCardView({ cards, initialIndex = 0, onIndexChange }: SingleCardViewProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [isAnimating, setIsAnimating] = useState(false)
   const [revealAllAnswers, setRevealAllAnswers] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -25,6 +27,11 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
   const progressBarRef = useRef<HTMLDivElement>(null)
   const [flipped, setFlipped] = useState(false)
   const isMobile = useMediaQuery("(max-width: 640px)")
+
+  // Initialize with the provided initialIndex
+  useEffect(() => {
+    setCurrentIndex(initialIndex)
+  }, [initialIndex])
 
   const handleFlip = () => {
     if (!isAnimating && !revealAllAnswers) {
@@ -63,6 +70,8 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
         handlePrevious()
       } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         handleFlip()
+      } else if (e.key === "Home") {
+        navigateToCard(0)
       }
     }
 
@@ -79,6 +88,9 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
       // Short delay to allow state changes to complete
       setTimeout(() => {
         setCurrentIndex(index)
+        if (onIndexChange) {
+          onIndexChange(index)
+        }
         setIsAnimating(false)
         setFlipped(false) // Reset flipped state when navigating to a new card
       }, 100)
@@ -95,6 +107,10 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
     if (currentIndex > 0) {
       navigateToCard(currentIndex - 1)
     }
+  }
+
+  const handleFirstCard = () => {
+    navigateToCard(0)
   }
 
   const toggleRevealAnswers = () => {
@@ -145,6 +161,9 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
     const percentage = (e.clientX - rect.left) / rect.width
     const newIndex = Math.min(Math.max(0, Math.floor(percentage * cards.length)), cards.length - 1)
     setCurrentIndex(newIndex)
+    if (onIndexChange) {
+      onIndexChange(newIndex)
+    }
   }
 
   const handleMouseUp = () => {
@@ -169,10 +188,21 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
     <div className="max-w-xl mx-auto px-4 md:px-0">
       {/* Card Counter and Controls - Only visible on desktop */}
       <div className="mb-4 hidden sm:flex justify-between items-center gap-2">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="font-medium">{currentIndex + 1}</span>
-          <span>/</span>
-          <span>{cards.length}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="font-medium">{currentIndex + 1}</span>
+            <span>/</span>
+            <span>{cards.length}</span>
+          </div>
+
+          <button
+            onClick={handleFirstCard}
+            className="p-1.5 rounded-full bg-secondary/50 hover:bg-secondary/80 transition-colors"
+            aria-label="Back to first card"
+            title="Вернуться к первой карточке"
+          >
+            <SkipBack className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -244,7 +274,7 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
         {/* Card */}
         <Card
           className={cn(
-            "h-[440px] md:h-[380px] flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white relative",
+            "h-[480px] md:h-[380px] flex items-center justify-center cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white relative",
             flipped && "ring-1 ring-primary/20",
           )}
           onClick={handleCardClick}
@@ -293,8 +323,8 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
 
             {/* Show both question and answer when revealAllAnswers is true */}
             {revealAllAnswers && !flipped && (
-              <div className="p-5 h-full flex flex-col justify-between">
-                <div className="text-center w-full overflow-y-auto custom-scrollbar flex-grow">
+              <div className="p-5 h-full flex flex-col justify-center">
+                <div className="text-center w-full overflow-y-auto custom-scrollbar">
                   <p className="font-medium text-base md:text-lg mb-4">{cards[currentIndex].question}</p>
                   <div className="border-t pt-3">
                     <div className="text-xs text-muted-foreground mb-1">Ответ:</div>
@@ -321,6 +351,13 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
         </button>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleFirstCard}
+            className="p-2 rounded-md bg-secondary/30 hover:bg-secondary/50 transition-colors text-xs flex items-center gap-1"
+            aria-label="Back to first card"
+          >
+            <SkipBack className="h-3 w-3" />
+          </button>
           <div className="flex items-center gap-1 text-xs">
             <span className="font-medium">{currentIndex + 1}</span>
             <span>/</span>
@@ -343,7 +380,7 @@ export default function SingleCardView({ cards }: SingleCardViewProps) {
         <button
           onClick={handleNext}
           disabled={currentIndex === cards.length - 1}
-          className="p-2 rounded-md bg-secondary/50 hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="p-2 rounded-md bg-secondary/50 hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all group"
           aria-label="Next card"
         >
           <ChevronRight className="h-4 w-4" />

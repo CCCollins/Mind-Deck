@@ -1,7 +1,7 @@
 "use client"
 
 import { supabase, type DbFlashcardCollection } from "./supabase"
-import { createCollectionPath } from "./url-utils"
+import { createCollectionPath, extractIdFromPath } from "./url-utils"
 
 // Function to create a new collection
 export async function createCollection(
@@ -83,10 +83,45 @@ export async function getCollectionByPath(path: string): Promise<DbFlashcardColl
 // Function to update a collection
 export async function updateCollection(
   id: string,
-  updates: { collection_name?: string; content?: { question: string; answer: string }[] },
+  updates: {
+    collection_name?: string
+    content?: { question: string; answer: string }[]
+    url_path?: string
+  },
 ): Promise<DbFlashcardCollection | null> {
   try {
-    const { data, error } = await supabase.from("flashcards").update(updates).eq("id", id).select().single()
+    // If collection name is being updated, regenerate the URL path
+    const updatesWithPath = { ...updates }
+
+    if (updates.collection_name) {
+      // First, get the current collection to extract the number from its URL path
+      const { data: currentCollection, error: fetchError } = await supabase
+        .from("flashcards")
+        .select("url_path")
+        .eq("id", id)
+        .single()
+
+      if (fetchError) {
+        console.error(`Ошибка при получении текущей коллекции с ID ${id}:`, fetchError)
+        throw new Error(fetchError.message)
+      }
+
+      // Extract the number from the current URL path
+      const currentPath = currentCollection.url_path || ""
+      const pathNumber = extractIdFromPath(currentPath)
+
+      // Create a new URL path with the updated name but preserve the original number
+      if (pathNumber) {
+        const slug = nameToSlug(updates.collection_name)
+        const finalSlug = slug || "collection"
+        updatesWithPath.url_path = `${finalSlug}/${pathNumber}`
+      } else {
+        // Fallback to creating a new path if we couldn't extract the number
+        updatesWithPath.url_path = createCollectionPath(updates.collection_name)
+      }
+    }
+
+    const { data, error } = await supabase.from("flashcards").update(updatesWithPath).eq("id", id).select().single()
 
     if (error) {
       console.error(`Ошибка при обновлении коллекции с ID ${id}:`, error)
@@ -240,4 +275,7 @@ function getYearsForm(years: number): string {
     return "лет"
   }
 }
+
+// Import nameToSlug from url-utils
+import { nameToSlug } from "./url-utils"
 

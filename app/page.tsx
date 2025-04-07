@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col items-center justify-center px-4">
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-4">
 
       {/* Заголовок */}
       <h1 className="text-5xl font-extrabold text-center text-gray-900">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -20,9 +20,11 @@ export default function StudyPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<"single" | "all">("single")
+  const [currentCardIndex, setCurrentCardIndex] = useState(0)
 
-  // Получаем путь из URL
-  const path = Array.isArray(params.path) ? params.path.join("/") : params.path
+  const path = useMemo(() => (
+    Array.isArray(params.path) ? params.path.join("/") : params.path
+  ), [params.path])
 
   useEffect(() => {
     async function fetchCollection() {
@@ -34,23 +36,20 @@ export default function StudyPage() {
           setError("Коллекция не найдена. Возможно, она была удалена.")
           toast({
             title: "Коллекция не найдена",
-            description: "Эта коллекция, возможно, была удалена. Перенаправление на страницу коллекций...",
+            description: "Вы будете перенаправлены на страницу коллекций...",
             variant: "destructive",
           })
-
-          setTimeout(() => {
-            router.push("/collections")
-          }, 3000)
+          setTimeout(() => router.push("/collections"), 3000)
           return
         }
 
         setCollection(data)
-      } catch (error) {
-        console.error("Ошибка при загрузке коллекции:", error)
-        setError("Не удалось загрузить коллекцию. Пожалуйста, попробуйте снова.")
+      } catch (err) {
+        console.error("Ошибка при загрузке:", err)
+        setError("Ошибка загрузки. Пожалуйста, попробуйте снова.")
         toast({
           title: "Ошибка",
-          description: "Не удалось загрузить коллекцию. Пожалуйста, попробуйте снова.",
+          description: "Не удалось загрузить коллекцию.",
           variant: "destructive",
         })
       } finally {
@@ -61,9 +60,17 @@ export default function StudyPage() {
     fetchCollection()
   }, [path, router])
 
+  const handleCardIndexChange = (index: number) => {
+    setCurrentCardIndex(index)
+  }
+
+  const handleModeChange = (newMode: "single" | "all") => {
+    setMode(newMode)
+  }
+
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center">
+      <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center text-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-muted-foreground">Загрузка коллекции...</p>
       </div>
@@ -73,12 +80,12 @@ export default function StudyPage() {
   if (error || !collection) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <Card className="max-w-md mx-auto text-center p-6 bg-white">
-          <CardContent className="pt-6 pb-4 flex flex-col items-center">
-            <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-            <p className="mb-4">{error || "Коллекция не найдена. Перенаправление на страницу коллекций..."}</p>
+        <Card className="max-w-md mx-auto p-6">
+          <CardContent className="flex flex-col items-center text-center gap-4">
+            <AlertCircle className="h-12 w-12 text-destructive" />
+            <p className="text-sm text-muted-foreground">{error || "Коллекция не найдена."}</p>
             <Link href="/collections">
-              <Button>Перейти к коллекциям</Button>
+              <Button>К коллекциям</Button>
             </Link>
           </CardContent>
         </Card>
@@ -89,46 +96,49 @@ export default function StudyPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
+      <div className="flex items-center gap-2 mb-6">
         <Link href="/collections">
-          <Button variant="ghost" className="pl-0">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Назад к коллекциям
+          <Button variant="ghost" size="sm">
+            <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
-      </div>
-
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="hidden sm:block">
-          <h1 className="text-3xl font-bold">{collection.collection_name}</h1>
-          <p className="text-muted-foreground">{collection.content.length} карточек</p>
-        </div>
-
-        <div className="flex space-x-2 bg-secondary p-1 rounded-lg">
+        <div className="flex items-center gap-1">
           <Button
             variant={mode === "single" ? "default" : "ghost"}
             size="sm"
-            className={mode === "single" ? "" : "hover:bg-background/50"}
-            onClick={() => setMode("single")}
+            onClick={() => handleModeChange("single")}
           >
             Одна карточка
           </Button>
           <Button
             variant={mode === "all" ? "default" : "ghost"}
             size="sm"
-            className={mode === "all" ? "" : "hover:bg-background/50"}
-            onClick={() => setMode("all")}
+            onClick={() => handleModeChange("all")}
           >
             Все карточки
           </Button>
         </div>
       </div>
 
-      {mode === "single" && <SingleCardView cards={collection.content} />}
-      {mode === "all" && <AllCardsView cards={collection.content} />}
+      {mode === "single" && (
+        <SingleCardView
+          cards={collection.content}
+          initialIndex={currentCardIndex}
+          onIndexChange={handleCardIndexChange}
+        />
+      )}
+
+      {mode === "all" && (
+        <AllCardsView
+          cards={collection.content}
+          onCardSelect={(index) => {
+            handleCardIndexChange(index)
+            handleModeChange("single")
+          }}
+        />
+      )}
 
       <Toaster />
     </div>
   )
 }
-
